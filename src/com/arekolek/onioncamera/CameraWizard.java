@@ -103,4 +103,10 @@ public class CameraWizard {
         }
     }
 
+    public void setAutofocus() {
+        Parameters parameters = camera.getParameters();
+        parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        camera.setParameters(parameters);
+    }
+
 }
