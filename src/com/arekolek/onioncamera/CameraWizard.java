@@ -14,6 +14,7 @@ public class CameraWizard {
 
     private int cameraId;
     private Camera camera;
+    private int orientation;
 
     public CameraWizard(int cameraId) {
         this.cameraId = cameraId;
@@ -44,14 +45,13 @@ public class CameraWizard {
                 break;
         }
 
-        int result;
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            result = (info.orientation + degrees) % 360;
-            result = (360 - result) % 360; // compensate the mirror
+            orientation = (info.orientation + degrees) % 360;
+            orientation = (360 - orientation) % 360; // compensate the mirror
         } else { // back-facing
-            result = (info.orientation - degrees + 360) % 360;
+            orientation = (info.orientation - degrees + 360) % 360;
         }
-        camera.setDisplayOrientation(result);
+        camera.setDisplayOrientation(orientation);
     }
 
     public static CameraWizard getBackFacingCamera() {
@@ -86,7 +86,12 @@ public class CameraWizard {
 
     public Size setPreviewSize(int width, int height) {
         Parameters parameters = camera.getParameters();
-        Size size = getBestPreviewSize(parameters, width, height);
+        Size size;
+        if (orientation == 0 || orientation == 180) {
+            size = getBestPreviewSize(parameters, width, height);
+        } else {
+            size = getBestPreviewSize(parameters, height, width);
+        }
         parameters.setPreviewSize(size.width, size.height);
         camera.setParameters(parameters);
         return size;
