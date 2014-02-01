@@ -4,19 +4,9 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity" >
 
-    <SurfaceView
+    <com.arekolek.onioncamera.Preview
         android:id="@+id/preview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:onClick="showProcessed"
-        android:visibility="visible" />
-
-    <ImageView
-        android:id="@+id/processed"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:onClick="showRaw"
-        android:visibility="gone"
-        tools:ignore="ContentDescription" />
+        android:layout_height="match_parent" />
 
 </FrameLayout>
