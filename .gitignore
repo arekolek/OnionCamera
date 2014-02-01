@@ -1,0 +1,36 @@
+# Android
+bin
+gen
+#lint.xml
+
+# Eclipse
+.project
+.classpath
+.settings
+.factorypath
+.pydevproject
+#.checkstyle
+#.metadata
+
+# IntelliJ
+.idea
+*.iml
+#*.ipr
+#*.iws
+out
+#classes
+gen-external-apklibs
+
+# Maven
+target
+#release.properties
+#pom.xml.*
+
+# Ant
+local.properties
+build.xml
+
+# other
+*~
+*.swp
+tmp

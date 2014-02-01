@@ -1,0 +1,22 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+    <SurfaceView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:onClick="showProcessed"
+        android:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/processed"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:onClick="showRaw"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
+
+</FrameLayout>
