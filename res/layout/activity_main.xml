@@ -1,13 +1,17 @@
-<com.arekolek.onioncamera.Preview xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/preview"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity" >
 
-    <SurfaceView
-        android:id="@+id/surface"
+    <TextureView
+        android:id="@+id/preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-</com.arekolek.onioncamera.Preview>
+    <TextureView
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</FrameLayout>

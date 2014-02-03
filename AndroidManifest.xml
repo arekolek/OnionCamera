@@ -21,6 +21,7 @@
         <activity
             android:name="com.arekolek.onioncamera.MainActivity"
             android:label="@string/app_name"
+            android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

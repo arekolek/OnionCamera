@@ -70,7 +70,7 @@ public class CameraWizard {
         throw new IllegalStateException("No back facing camera");
     }
 
-    public static Size getBestPreviewSize(Parameters parameters, int width, int height) {
+    private static Size getBestPreviewSize(Parameters parameters, int width, int height) {
         List<Size> sizes = parameters.getSupportedPreviewSizes();
         float ratio = width / (float) height;
         Size bestSize = null;
@@ -98,12 +98,6 @@ public class CameraWizard {
         return size;
     }
 
-    public void setBuffers(Filter filter) {
-        for (int i = 0; i < filter.getBuffersNum(); ++i) {
-            camera.addCallbackBuffer(filter.createBuffer());
-        }
-    }
-
     public void setAutofocus() {
         Parameters parameters = camera.getParameters();
         parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
@@ -124,4 +118,5 @@ public class CameraWizard {
         parameters.setPreviewFpsRange(best[0], best[1]);
         camera.setParameters(parameters);
     }
+
 }

@@ -3,10 +3,10 @@ package com.arekolek.onioncamera;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.support.v8.renderscript.Allocation;
-import android.support.v8.renderscript.Element;
-import android.support.v8.renderscript.RenderScript;
-import android.support.v8.renderscript.Type;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.Type;
 
 public class Filter {
     private ScriptC_filter filter;
@@ -49,10 +49,6 @@ public class Filter {
         size = width * height;
     }
 
-    public byte[] createBuffer() {
-        return new byte[size * 12 / 8];
-    }
-
     public void run(byte[] data, Bitmap result) {
         in.copy1DRangeFrom(0, size, data);
 
@@ -62,7 +58,4 @@ public class Filter {
         out.copyTo(result);
     }
 
-    public int getBuffersNum() {
-        return 3;
-    }
 }
