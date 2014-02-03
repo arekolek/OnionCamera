@@ -38,7 +38,7 @@ public class MainActivity extends Activity
     private int state = STATE_OFF;
     private boolean isProcessing = false;
 
-    private RsYuv filter;
+    private Filter filter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,6 +48,10 @@ public class MainActivity extends Activity
         preview = (TextureView) findViewById(R.id.preview);
         overlay = (TextureView) findViewById(R.id.overlay);
 
+        filter = new Filter(RenderScript.create(this));
+        preview.setSurfaceTextureListener(this);
+        overlay.setSurfaceTextureListener(filter);
+
         preview.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -56,11 +60,6 @@ public class MainActivity extends Activity
                 overlay.setVisibility(visibility);
             }
         });
-
-        preview.setSurfaceTextureListener(this);
-
-        filter = new RsYuv(RenderScript.create(this));
-        overlay.setSurfaceTextureListener(filter);
     }
 
     @Override
