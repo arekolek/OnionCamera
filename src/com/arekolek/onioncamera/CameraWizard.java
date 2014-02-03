@@ -9,7 +9,8 @@ import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 
-import java.util.List;
+import java.util.Comparator;
+import java.util.TreeSet;
 
 public class CameraWizard {
 
@@ -71,13 +72,19 @@ public class CameraWizard {
     }
 
     private static Size getBestPreviewSize(Parameters parameters, int width, int height) {
-        List<Size> sizes = parameters.getSupportedPreviewSizes();
+        TreeSet<Size> sizes = new TreeSet<Size>(new Comparator<Size>() {
+            @Override
+            public int compare(Size a, Size b) {
+                return a.width * a.height - b.width * b.height;
+            }
+        });
+        sizes.addAll(parameters.getSupportedPreviewSizes());
         float ratio = width / (float) height;
         Size bestSize = null;
         float closestMatch = Float.MAX_VALUE;
         for (Size size : sizes) {
             float match = Math.abs(size.width / (float) size.height - ratio);
-            if (match < closestMatch) {
+            if (match <= closestMatch) {
                 closestMatch = match;
                 bestSize = size;
             }

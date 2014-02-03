@@ -16,8 +16,6 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.View.OnClickListener;
 
-import java.io.IOException;
-
 public class MainActivity extends Activity
         implements TextureView.SurfaceTextureListener, Camera.PreviewCallback {
 
@@ -169,7 +167,7 @@ public class MainActivity extends Activity
         try {
             camera.setPreviewTexture(surface);
             camera.startPreview();
-        } catch (IOException ioe) {
+        } catch (Exception e) {
             // Something bad happened
             Log.e(TAG, "Unable to start up preview");
         }
