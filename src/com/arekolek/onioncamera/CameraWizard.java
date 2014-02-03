@@ -5,6 +5,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
+import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 
@@ -109,4 +110,18 @@ public class CameraWizard {
         camera.setParameters(parameters);
     }
 
+    public void setFps() {
+        Parameters parameters = camera.getParameters();
+        int[] best = {
+                Integer.MIN_VALUE, Integer.MIN_VALUE
+        };
+        for (int[] range : parameters.getSupportedPreviewFpsRange()) {
+            if (range[0] > best[0]) {
+                best = range;
+            }
+        }
+        Log.d("OnionCamera", "request fps: " + best[0] + " - " + best[1]);
+        parameters.setPreviewFpsRange(best[0], best[1]);
+        camera.setParameters(parameters);
+    }
 }

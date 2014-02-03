@@ -6,8 +6,6 @@ import android.os.Bundle;
 
 public class MainActivity extends Activity {
 
-    static final String TAG = "OnionCamera";
-
     private Preview preview;
 
     @Override

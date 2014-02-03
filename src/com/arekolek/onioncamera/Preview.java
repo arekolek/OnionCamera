@@ -3,49 +3,45 @@ package com.arekolek.onioncamera;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
-import android.widget.ImageView;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.widget.FrameLayout;
 
 import java.io.IOException;
 
-public class Preview extends SurfaceView implements Callback, PreviewCallback {
+public class Preview extends FrameLayout implements Callback, PreviewCallback, OnTouchListener {
 
     private SurfaceHolder holder;
     private Filter filter;
     private Camera camera;
-    private ImageView processed;
-    private Bitmap bitmap;
-    private Object busyLock = new Object();
-    private boolean busy;
+    private SurfaceView surface;
 
     public Preview(Context context) {
         super(context);
-        init();
     }
 
     public Preview(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
     }
 
     public Preview(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        init();
-    }
-
-    private void init() {
-        holder = getHolder();
     }
 
     public void resume() {
+        surface = (SurfaceView) findViewById(R.id.surface);
+        holder = surface.getHolder();
         holder.addCallback(this);
+        setOnTouchListener(this);
     }
 
     public void pause() {
@@ -55,6 +51,7 @@ public class Preview extends SurfaceView implements Callback, PreviewCallback {
             camera = null;
         }
         holder.removeCallback(this);
+        setOnTouchListener(null);
     }
 
     @Override
@@ -67,6 +64,7 @@ public class Preview extends SurfaceView implements Callback, PreviewCallback {
             filter = new Filter(activity, size.width, size.height);
             wizard.setBuffers(filter);
             wizard.setAutofocus();
+            wizard.setFps();
             camera = wizard.getCamera();
             camera.setPreviewCallbackWithBuffer(this);
             camera.setPreviewDisplay(holder);
@@ -89,20 +87,13 @@ public class Preview extends SurfaceView implements Callback, PreviewCallback {
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
-        synchronized (busyLock) {
-            if (busy) {
-                camera.addCallbackBuffer(data);
-                return;
-            }
-            busy = true;
-        }
-        try {
-            filter.run(data, bitmap);
-            processed.invalidate();
-        } catch (Exception e) {
-        }
         camera.addCallbackBuffer(data);
-        busy = false;
+    }
+
+    @Override
+    public boolean onTouch(View view, MotionEvent event) {
+        Log.d("OnionCamera", "TACZI TACZI");
+        return false;
     }
 
 }
