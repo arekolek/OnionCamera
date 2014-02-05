@@ -1,3 +1,4 @@
+
 #pragma version(1)
 #pragma rs java_package_name(com.arekolek.onioncamera)
 #pragma rs_fp_relaxed
@@ -116,8 +117,7 @@ void init() {
 void setSize(int w, int h) {
 	gWidth = w;
 	gHeight = h;
-	vignette_half_dims = (int2 ) { w / 2, h / 2 };
+	vignette_half_dims = (int2) { w / 2, h / 2 };
 	vignette_dist_mod = 512.f;
 	vignette_dist_mod /= (float) (w * w + h * h) / 4.f;
-
 }

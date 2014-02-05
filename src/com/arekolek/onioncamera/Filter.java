@@ -21,7 +21,6 @@ import android.graphics.SurfaceTexture;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
-import android.renderscript.ScriptGroup;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
 import android.view.TextureView;
@@ -30,18 +29,24 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private int mHeight;
     private int mWidth;
     private RenderScript mRS;
-    private Allocation mAllocationOut;
     private Allocation mAllocationIn;
-    private ScriptC_yuv mScript;
+    private Allocation mAllocationTmp;
+    private Allocation mAllocationOut;
     private ScriptIntrinsicYuvToRGB mYuv;
+    //    private ScriptC_vintage mVintage;
+    private ScriptC_effects mEffects;
+    //    private ScriptIntrinsicBlur mBlur2;
     private boolean mHaveSurface;
     private SurfaceTexture mSurface;
-    private ScriptGroup mGroup;
+
+    //    private ScriptGroup mGroup;
 
     public Filter(RenderScript rs) {
         mRS = rs;
-        mScript = new ScriptC_yuv(mRS);
         mYuv = ScriptIntrinsicYuvToRGB.create(rs, Element.RGBA_8888(mRS));
+        //        mVintage = new ScriptC_vintage(mRS);
+        mEffects = new ScriptC_effects(mRS);
+        //        mBlur2 = ScriptIntrinsicBlur.create(mRS, Element.U8_4(mRS));
     }
 
     private void setupSurface() {
@@ -64,34 +69,37 @@ public class Filter implements TextureView.SurfaceTextureListener {
 
         mHeight = height;
         mWidth = width;
-        mScript.invoke_setSize(mWidth, mHeight);
 
         Type.Builder tb;
 
-        // input conversion
         tb = new Type.Builder(mRS, Element.createPixel(mRS, Element.DataType.UNSIGNED_8,
                 Element.DataKind.PIXEL_YUV));
         tb.setX(mWidth);
         tb.setY(mHeight);
         tb.setYuvFormat(ImageFormat.NV21);
         mAllocationIn = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
-        mYuv.setInput(mAllocationIn);
 
-        // effect 
         tb = new Type.Builder(mRS, Element.RGBA_8888(mRS));
         tb.setX(mWidth);
         tb.setY(mHeight);
+        mAllocationTmp = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
         mAllocationOut = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
                 Allocation.USAGE_IO_OUTPUT);
 
         setupSurface();
 
-        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
-        b.addKernel(mYuv.getKernelID());
-        b.addKernel(mScript.getKernelID_root());
-        b.addConnection(tb.create(), mYuv.getKernelID(), mScript.getKernelID_root());
-        mGroup = b.create();
+        mYuv.setInput(mAllocationIn);
+        //        mVintage.invoke_setSize(mWidth, mHeight);
+        mEffects.invoke_set_input(mAllocationTmp);
+        //        mBlur2.setInput(mAllocationTmp);
 
+        //        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
+        //        b.addKernel(mYuv.getKernelID());
+        //        b.addKernel(mVintage.getKernelID_root());
+        //        b.addConnection(tb.create(), mYuv.getKernelID(), mVintage.getKernelID_root());
+        //        b.addKernel(mBlur.getKernelID());
+        //        b.addConnection(tb.create(), mYuv.getKernelID(), mBlur.getKernelID());
+        //        mGroup = b.create();
     }
 
     public int getWidth() {
@@ -103,10 +111,15 @@ public class Filter implements TextureView.SurfaceTextureListener {
     }
 
     public void execute(byte[] yuv) {
-        mAllocationIn.copyFrom(yuv);
         if (mHaveSurface) {
-            mGroup.setOutput(mScript.getKernelID_root(), mAllocationOut);
-            mGroup.execute();
+            //            mGroup.setOutput(mVintage.getKernelID_root(), mAllocationOut);
+            //            mGroup.setOutput(mBlur.getKernelID(), mAllocationOut);
+            //            mGroup.execute();
+            mAllocationIn.copyFrom(yuv);
+            mYuv.forEach(mAllocationTmp);
+            //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
+            mEffects.forEach_edges(mAllocationOut);
+            //            mBlur2.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();
