@@ -21,6 +21,7 @@ import android.graphics.SurfaceTexture;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicColorMatrix;
 import android.renderscript.ScriptIntrinsicConvolve3x3;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
@@ -34,6 +35,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private Allocation mAllocationTmp;
     private Allocation mAllocationOut;
     private ScriptIntrinsicYuvToRGB mYuv;
+    private ScriptIntrinsicColorMatrix mGray;
     //    private ScriptC_vintage mVintage;
     private ScriptC_effects mEffects;
     private ScriptIntrinsicConvolve3x3 mEdges;
@@ -48,6 +50,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
         //        mVintage = new ScriptC_vintage(mRS);
         mEffects = new ScriptC_effects(mRS);
         mEdges = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
+        mGray = ScriptIntrinsicColorMatrix.create(mRS);
     }
 
     private void setupSurface() {
@@ -90,6 +93,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
         setupSurface();
 
         mYuv.setInput(mAllocationIn);
+        mGray.setGreyscale();
         //        mVintage.invoke_setSize(mWidth, mHeight);
         mEffects.invoke_set_input(mAllocationTmp);
         //        mBlur2.setInput(mAllocationTmp);
@@ -124,9 +128,10 @@ public class Filter implements TextureView.SurfaceTextureListener {
             //            mGroup.execute();
             mAllocationIn.copyFrom(yuv);
             mYuv.forEach(mAllocationTmp);
+            mGray.forEach(mAllocationTmp, mAllocationTmp);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
             mEffects.forEach_edges(mAllocationOut);
-            //            mEdges.forEach(mAllocationOut);
+            //mEdges.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();
