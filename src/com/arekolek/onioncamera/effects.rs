@@ -49,42 +49,36 @@ uchar4 __attribute__((kernel)) blur(uint32_t x, uint32_t y) {
 }
 
 uchar4 __attribute__((kernel)) edges(uint32_t x, uint32_t y) {
-    float4 pixel = getElementAt_unpack(in, x, y) * -4;
+    float3 pixel = getElementAt_unpack(in, x, y).rgb * -4;
     
-    int o = 1;
-    
-    pixel += getElementAt_unpack(in, x, y-o);
-    pixel += getElementAt_unpack(in, x-o, y);
-    pixel += getElementAt_unpack(in, x, y+o);
-    pixel += getElementAt_unpack(in, x+o, y);
-    
-    pixel.a = 1;
+    pixel += getElementAt_unpack(in, x, y-1).rgb;
+    pixel += getElementAt_unpack(in, x-1, y).rgb;
+    pixel += getElementAt_unpack(in, x, y+1).rgb;
+    pixel += getElementAt_unpack(in, x+1, y).rgb;
     
     return rsPackColorTo8888(pixel);
 }
 
 uchar4 __attribute__((kernel)) sobel(uint32_t x, uint32_t y) {
-    float4 gx = 0;
+    float3 gx = 0;
     
-    gx -= getElementAt_unpack(in, x-1, y-1);
-    gx -= getElementAt_unpack(in, x-1, y) * 2;
-    gx -= getElementAt_unpack(in, x-1, y+1);
-    gx += getElementAt_unpack(in, x+1, y-1);
-	gx += getElementAt_unpack(in, x+1, y) * 2;
-	gx += getElementAt_unpack(in, x+1, y+1);
+    gx -= getElementAt_unpack(in, x-1, y-1).rgb;
+    gx -= getElementAt_unpack(in, x-1, y).rgb * 2;
+    gx -= getElementAt_unpack(in, x-1, y+1).rgb;
+    gx += getElementAt_unpack(in, x+1, y-1).rgb;
+	gx += getElementAt_unpack(in, x+1, y).rgb * 2;
+	gx += getElementAt_unpack(in, x+1, y+1).rgb;
 	
-	float4 gy = 0;
+	float3 gy = 0;
 	
-	gx += getElementAt_unpack(in, x-1, y-1);
-	gx += getElementAt_unpack(in, x, y-1) * 2;
-	gx += getElementAt_unpack(in, x+1, y-1);
-	gx -= getElementAt_unpack(in, x-1, y+1);
-	gx -= getElementAt_unpack(in, x, y+1) * 2;
-	gx -= getElementAt_unpack(in, x+1, y+1);
+	gx += getElementAt_unpack(in, x-1, y-1).rgb;
+	gx += getElementAt_unpack(in, x, y-1).rgb * 2;
+	gx += getElementAt_unpack(in, x+1, y-1).rgb;
+	gx -= getElementAt_unpack(in, x-1, y+1).rgb;
+	gx -= getElementAt_unpack(in, x, y+1).rgb * 2;
+	gx -= getElementAt_unpack(in, x+1, y+1).rgb;
     
-    float4 pixel = fabs(gx) + fabs(gy);
-    
-    pixel.a = 1;
+    float3 pixel = fabs(gx) + fabs(gy);
     
     return rsPackColorTo8888(pixel);
 }

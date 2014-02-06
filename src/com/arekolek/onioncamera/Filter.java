@@ -33,8 +33,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private int mWidth;
     private RenderScript mRS;
     private Allocation mAllocationIn;
-    private Allocation mAllocationTmp;
-    private Allocation mAllocationOut;
+    private Allocation mAllocationOut1;
+    private Allocation mAllocationOut2;
     private ScriptIntrinsicYuvToRGB mYuv;
     private ScriptIntrinsicColorMatrix mGray;
     //    private ScriptC_vintage mVintage;
@@ -58,10 +58,10 @@ public class Filter implements TextureView.SurfaceTextureListener {
 
     private void setupSurface() {
         if (mSurface != null) {
-            if (mAllocationOut != null) {
+            if (mAllocationOut2 != null) {
                 // hidden API
                 //mAllocationOut.setSurfaceTexture(mSurface);
-                setSurfaceTexture(mAllocationOut, mSurface);
+                setSurfaceTexture(mAllocationOut2, mSurface);
             }
             mHaveSurface = true;
         } else {
@@ -70,8 +70,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
     }
 
     public void reset(int width, int height) {
-        if (mAllocationOut != null) {
-            mAllocationOut.destroy();
+        if (mAllocationOut2 != null) {
+            mAllocationOut2.destroy();
         }
 
         mHeight = height;
@@ -89,8 +89,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
         tb = new Type.Builder(mRS, Element.RGBA_8888(mRS));
         tb.setX(mWidth);
         tb.setY(mHeight);
-        mAllocationTmp = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
-        mAllocationOut = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
+        mAllocationOut1 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+        mAllocationOut2 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
                 Allocation.USAGE_IO_OUTPUT);
 
         setupSurface();
@@ -98,22 +98,26 @@ public class Filter implements TextureView.SurfaceTextureListener {
         mYuv.setInput(mAllocationIn);
         mGray.setGreyscale();
         //        mVintage.invoke_setSize(mWidth, mHeight);
-        mEffects.invoke_set_input(mAllocationTmp);
+        mEffects.invoke_set_input(mAllocationOut1);
         //        mBlur2.setInput(mAllocationTmp);
-        mConv3.setInput(mAllocationTmp);
+        mConv3.setInput(mAllocationOut1);
         mConv3.setCoefficients(new float[] {
                 0, 1, 0,
                 1, -4, 1,
                 0, 1, 0
         });
-        mConv5.setInput(mAllocationTmp);
-        mConv5.setCoefficients(new float[] {
-                -1, -1, -1, -1, -1,
-                -1, -1, -1, -1, -1,
-                -1, -1, 24, -1, -1,
-                -1, -1, -1, -1, -1,
-                -1, -1, -1, -1, -1
-        });
+        mConv5.setInput(mAllocationOut1);
+        float[] coeffs = new float[] {
+                2, 4, 5, 4, 2,
+                4, 9, 12, 9, 4,
+                5, 12, 15, 12, 5,
+                4, 9, 12, 9, 4,
+                2, 4, 5, 4, 2
+        };
+        for (int i = 0; i < 25; ++i) {
+            coeffs[i] /= 115;
+        }
+        mConv5.setCoefficients(coeffs);
 
         //        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
         //        b.addKernel(mYuv.getKernelID());
@@ -138,17 +142,18 @@ public class Filter implements TextureView.SurfaceTextureListener {
             //            mGroup.setOutput(mBlur.getKernelID(), mAllocationOut);
             //            mGroup.execute();
             mAllocationIn.copyFrom(yuv);
-            mYuv.forEach(mAllocationTmp);
-            mGray.forEach(mAllocationTmp, mAllocationTmp);
+            mYuv.forEach(mAllocationOut1);
+            //            mConv5.forEach(mAllocationOut2);
+            mGray.forEach(mAllocationOut1, mAllocationOut1);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
-            //            mEffects.forEach_edges(mAllocationOut);
-            mEffects.forEach_sobel(mAllocationOut);
+            mEffects.forEach_edges(mAllocationOut2);
+            //            mEffects.forEach_sobel(mAllocationOut2);
             //            mConv3.forEach(mAllocationOut);
             //            mConv5.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();
-            ioSendOutput(mAllocationOut);
+            ioSendOutput(mAllocationOut2);
         }
     }
 
