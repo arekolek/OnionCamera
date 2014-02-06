@@ -4,12 +4,13 @@
 #pragma rs_fp_relaxed
 
 static rs_allocation in;
-static int width, height;
+static uint32_t maxX, maxY;
+static const uint32_t zero = 0;
 
 void set_input(rs_allocation a) {
 	in = a;
-	width = rsAllocationGetDimX(a);
-	height = rsAllocationGetDimY(a);
+	maxX = rsAllocationGetDimX(a) - 1;
+	maxY = rsAllocationGetDimY(a) - 1;
 }
 
 // TODO use rs_sampler instead? (supposedly it's worse)
@@ -19,16 +20,8 @@ void set_input(rs_allocation a) {
 // TODO run only on a subset of the input (launch options)
 // TODO no race conditions in histogram?
 
-inline static uint32_t clamp_to_x(uint32_t x, rs_allocation a) {
-	return clamp(x, (uint32_t)0, rsAllocationGetDimX(a)-1);
-}
-
-inline static uint32_t clamp_to_y(uint32_t y, rs_allocation a) {
-	return clamp(y, (uint32_t)0, rsAllocationGetDimY(a)-1);
-}
-
 inline static uchar4 getElementAt_uchar4_clamped(rs_allocation a, uint32_t x, uint32_t y) {
-	return rsGetElementAt_uchar4(a, clamp_to_x(x, a), clamp_to_y(y, a));
+	return rsGetElementAt_uchar4(a, clamp(x, zero, maxX), clamp(y, zero, maxY));
 }
 
 inline static float4 getElementAt_unpack(rs_allocation a, uint32_t x, uint32_t y) {
@@ -36,43 +29,36 @@ inline static float4 getElementAt_unpack(rs_allocation a, uint32_t x, uint32_t y
 }
 
 uchar4 __attribute__((kernel)) blur(uint32_t x, uint32_t y) {
-    float3 blurred = getElementAt_unpack(in, x, y).rgb * 0.12f;
+    float3 pixel = getElementAt_unpack(in, x, y).rgb * 0.12f;
     
     int o = 6;
     
-    blurred += getElementAt_unpack(in, x, y-o).rgb * 0.12f;
-    blurred += getElementAt_unpack(in, x-o, y).rgb * 0.12f;
-    blurred += getElementAt_unpack(in, x, y+o).rgb * 0.12f;
-    blurred += getElementAt_unpack(in, x+o, y).rgb * 0.12f;
+    pixel += getElementAt_unpack(in, x, y-o).rgb * 0.12f;
+    pixel += getElementAt_unpack(in, x-o, y).rgb * 0.12f;
+    pixel += getElementAt_unpack(in, x, y+o).rgb * 0.12f;
+    pixel += getElementAt_unpack(in, x+o, y).rgb * 0.12f;
     
     o = 3;
     
-    blurred += getElementAt_unpack(in, x-o, y-o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x+o, y-o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x+o, y+o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x-o, y+o).rgb * 0.1f;
+    pixel += getElementAt_unpack(in, x-o, y-o).rgb * 0.1f;
+    pixel += getElementAt_unpack(in, x+o, y-o).rgb * 0.1f;
+    pixel += getElementAt_unpack(in, x+o, y+o).rgb * 0.1f;
+    pixel += getElementAt_unpack(in, x-o, y+o).rgb * 0.1f;
     
-    return rsPackColorTo8888(blurred);
+    return rsPackColorTo8888(pixel);
 }
 
 uchar4 __attribute__((kernel)) edges(uint32_t x, uint32_t y) {
-    float3 blurred = getElementAt_unpack(in, x, y).rgb * -1.0f;
+    float4 pixel = getElementAt_unpack(in, x, y) * -4;
     
-    int o = 6;
+    int o = 1;
     
-    blurred += getElementAt_unpack(in, x, y-o).rgb * 0.25f;
-    blurred += getElementAt_unpack(in, x-o, y).rgb * 0.25f;
-    blurred += getElementAt_unpack(in, x, y+o).rgb * 0.25f;
-    blurred += getElementAt_unpack(in, x+o, y).rgb * 0.25f;
+    pixel += getElementAt_unpack(in, x, y-o);
+    pixel += getElementAt_unpack(in, x-o, y);
+    pixel += getElementAt_unpack(in, x, y+o);
+    pixel += getElementAt_unpack(in, x+o, y);
     
-    /*
-	o = 3;
+    pixel.a = 1;
     
-    blurred += getElementAt_unpack(in, x-o, y-o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x+o, y-o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x+o, y+o).rgb * 0.1f;
-    blurred += getElementAt_unpack(in, x-o, y+o).rgb * 0.1f;
-    */
-    
-    return rsPackColorTo8888(blurred);
+    return rsPackColorTo8888(pixel);
 }

@@ -21,6 +21,7 @@ import android.graphics.SurfaceTexture;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicConvolve3x3;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
 import android.view.TextureView;
@@ -35,7 +36,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private ScriptIntrinsicYuvToRGB mYuv;
     //    private ScriptC_vintage mVintage;
     private ScriptC_effects mEffects;
-    //    private ScriptIntrinsicBlur mBlur2;
+    private ScriptIntrinsicConvolve3x3 mEdges;
     private boolean mHaveSurface;
     private SurfaceTexture mSurface;
 
@@ -46,7 +47,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
         mYuv = ScriptIntrinsicYuvToRGB.create(rs, Element.RGBA_8888(mRS));
         //        mVintage = new ScriptC_vintage(mRS);
         mEffects = new ScriptC_effects(mRS);
-        //        mBlur2 = ScriptIntrinsicBlur.create(mRS, Element.U8_4(mRS));
+        mEdges = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
     }
 
     private void setupSurface() {
@@ -92,6 +93,12 @@ public class Filter implements TextureView.SurfaceTextureListener {
         //        mVintage.invoke_setSize(mWidth, mHeight);
         mEffects.invoke_set_input(mAllocationTmp);
         //        mBlur2.setInput(mAllocationTmp);
+        mEdges.setInput(mAllocationTmp);
+        mEdges.setCoefficients(new float[]{
+                0, 1, 0,
+                1, -4, 1,
+                0, 1, 0
+        });
 
         //        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
         //        b.addKernel(mYuv.getKernelID());
@@ -119,7 +126,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
             mYuv.forEach(mAllocationTmp);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
             mEffects.forEach_edges(mAllocationOut);
-            //            mBlur2.forEach(mAllocationOut);
+            //            mEdges.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();
