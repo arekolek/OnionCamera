@@ -23,6 +23,7 @@ import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicColorMatrix;
 import android.renderscript.ScriptIntrinsicConvolve3x3;
+import android.renderscript.ScriptIntrinsicConvolve5x5;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
 import android.view.TextureView;
@@ -38,7 +39,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private ScriptIntrinsicColorMatrix mGray;
     //    private ScriptC_vintage mVintage;
     private ScriptC_effects mEffects;
-    private ScriptIntrinsicConvolve3x3 mEdges;
+    private ScriptIntrinsicConvolve3x3 mConv3;
+    private ScriptIntrinsicConvolve5x5 mConv5;
     private boolean mHaveSurface;
     private SurfaceTexture mSurface;
 
@@ -47,10 +49,11 @@ public class Filter implements TextureView.SurfaceTextureListener {
     public Filter(RenderScript rs) {
         mRS = rs;
         mYuv = ScriptIntrinsicYuvToRGB.create(rs, Element.RGBA_8888(mRS));
+        mGray = ScriptIntrinsicColorMatrix.create(mRS);
         //        mVintage = new ScriptC_vintage(mRS);
         mEffects = new ScriptC_effects(mRS);
-        mEdges = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
-        mGray = ScriptIntrinsicColorMatrix.create(mRS);
+        mConv3 = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
+        mConv5 = ScriptIntrinsicConvolve5x5.create(mRS, Element.U8_4(mRS));
     }
 
     private void setupSurface() {
@@ -97,11 +100,19 @@ public class Filter implements TextureView.SurfaceTextureListener {
         //        mVintage.invoke_setSize(mWidth, mHeight);
         mEffects.invoke_set_input(mAllocationTmp);
         //        mBlur2.setInput(mAllocationTmp);
-        mEdges.setInput(mAllocationTmp);
-        mEdges.setCoefficients(new float[]{
+        mConv3.setInput(mAllocationTmp);
+        mConv3.setCoefficients(new float[] {
                 0, 1, 0,
                 1, -4, 1,
                 0, 1, 0
+        });
+        mConv5.setInput(mAllocationTmp);
+        mConv5.setCoefficients(new float[] {
+                -1, -1, -1, -1, -1,
+                -1, -1, -1, -1, -1,
+                -1, -1, 24, -1, -1,
+                -1, -1, -1, -1, -1,
+                -1, -1, -1, -1, -1
         });
 
         //        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
@@ -130,8 +141,10 @@ public class Filter implements TextureView.SurfaceTextureListener {
             mYuv.forEach(mAllocationTmp);
             mGray.forEach(mAllocationTmp, mAllocationTmp);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
-            mEffects.forEach_edges(mAllocationOut);
-            //mEdges.forEach(mAllocationOut);
+            //            mEffects.forEach_edges(mAllocationOut);
+            mEffects.forEach_sobel(mAllocationOut);
+            //            mConv3.forEach(mAllocationOut);
+            //            mConv5.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();

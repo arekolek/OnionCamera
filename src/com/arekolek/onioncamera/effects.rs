@@ -62,3 +62,29 @@ uchar4 __attribute__((kernel)) edges(uint32_t x, uint32_t y) {
     
     return rsPackColorTo8888(pixel);
 }
+
+uchar4 __attribute__((kernel)) sobel(uint32_t x, uint32_t y) {
+    float4 gx = 0;
+    
+    gx -= getElementAt_unpack(in, x-1, y-1);
+    gx -= getElementAt_unpack(in, x-1, y) * 2;
+    gx -= getElementAt_unpack(in, x-1, y+1);
+    gx += getElementAt_unpack(in, x+1, y-1);
+	gx += getElementAt_unpack(in, x+1, y) * 2;
+	gx += getElementAt_unpack(in, x+1, y+1);
+	
+	float4 gy = 0;
+	
+	gx += getElementAt_unpack(in, x-1, y-1);
+	gx += getElementAt_unpack(in, x, y-1) * 2;
+	gx += getElementAt_unpack(in, x+1, y-1);
+	gx -= getElementAt_unpack(in, x-1, y+1);
+	gx -= getElementAt_unpack(in, x, y+1) * 2;
+	gx -= getElementAt_unpack(in, x+1, y+1);
+    
+    float4 pixel = fabs(gx) + fabs(gy);
+    
+    pixel.a = 1;
+    
+    return rsPackColorTo8888(pixel);
+}
