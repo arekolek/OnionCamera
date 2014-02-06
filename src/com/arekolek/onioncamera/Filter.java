@@ -144,9 +144,10 @@ public class Filter implements TextureView.SurfaceTextureListener {
             mAllocationIn.copyFrom(yuv);
             mYuv.forEach(mAllocationOut1);
             //            mConv5.forEach(mAllocationOut2);
-            mGray.forEach(mAllocationOut1, mAllocationOut1);
+            //            mGray.forEach(mAllocationOut1, mAllocationOut1);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
-            mEffects.forEach_edges(mAllocationOut2);
+            //            mEffects.forEach_edges(mAllocationOut2);
+            mEffects.forEach_blur(mAllocationOut2);
             //            mEffects.forEach_sobel(mAllocationOut2);
             //            mConv3.forEach(mAllocationOut);
             //            mConv5.forEach(mAllocationOut);
