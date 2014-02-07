@@ -22,8 +22,6 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicColorMatrix;
-import android.renderscript.ScriptIntrinsicConvolve3x3;
-import android.renderscript.ScriptIntrinsicConvolve5x5;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
 import android.view.TextureView;
@@ -33,14 +31,14 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private int mWidth;
     private RenderScript mRS;
     private Allocation mAllocationIn;
-    private Allocation mAllocationOut1;
-    private Allocation mAllocationOut2;
+    private Allocation mAllocationTmp;
+    private Allocation mAllocationOut;
     private ScriptIntrinsicYuvToRGB mYuv;
     private ScriptIntrinsicColorMatrix mGray;
     //    private ScriptC_vintage mVintage;
     private ScriptC_effects mEffects;
-    private ScriptIntrinsicConvolve3x3 mConv3;
-    private ScriptIntrinsicConvolve5x5 mConv5;
+    //    private ScriptIntrinsicConvolve3x3 mConv3;
+    //    private ScriptIntrinsicConvolve5x5 mConv5;
     private boolean mHaveSurface;
     private SurfaceTexture mSurface;
 
@@ -52,16 +50,16 @@ public class Filter implements TextureView.SurfaceTextureListener {
         mGray = ScriptIntrinsicColorMatrix.create(mRS);
         //        mVintage = new ScriptC_vintage(mRS);
         mEffects = new ScriptC_effects(mRS);
-        mConv3 = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
-        mConv5 = ScriptIntrinsicConvolve5x5.create(mRS, Element.U8_4(mRS));
+        //        mConv3 = ScriptIntrinsicConvolve3x3.create(mRS, Element.U8_4(mRS));
+        //        mConv5 = ScriptIntrinsicConvolve5x5.create(mRS, Element.U8_4(mRS));
     }
 
     private void setupSurface() {
         if (mSurface != null) {
-            if (mAllocationOut2 != null) {
+            if (mAllocationOut != null) {
                 // hidden API
                 //mAllocationOut.setSurfaceTexture(mSurface);
-                setSurfaceTexture(mAllocationOut2, mSurface);
+                setSurfaceTexture(mAllocationOut, mSurface);
             }
             mHaveSurface = true;
         } else {
@@ -70,8 +68,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
     }
 
     public void reset(int width, int height) {
-        if (mAllocationOut2 != null) {
-            mAllocationOut2.destroy();
+        if (mAllocationOut != null) {
+            mAllocationOut.destroy();
         }
 
         mHeight = height;
@@ -89,35 +87,35 @@ public class Filter implements TextureView.SurfaceTextureListener {
         tb = new Type.Builder(mRS, Element.RGBA_8888(mRS));
         tb.setX(mWidth);
         tb.setY(mHeight);
-        mAllocationOut1 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
-        mAllocationOut2 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
+        mAllocationTmp = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+        mAllocationOut = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
                 Allocation.USAGE_IO_OUTPUT);
 
         setupSurface();
 
         mYuv.setInput(mAllocationIn);
         mGray.setGreyscale();
+        mEffects.invoke_set_buffers(mAllocationTmp, mAllocationOut);
         //        mVintage.invoke_setSize(mWidth, mHeight);
-        mEffects.invoke_set_input(mAllocationOut1);
         //        mBlur2.setInput(mAllocationTmp);
-        mConv3.setInput(mAllocationOut1);
-        mConv3.setCoefficients(new float[] {
-                0, 1, 0,
-                1, -4, 1,
-                0, 1, 0
-        });
-        mConv5.setInput(mAllocationOut1);
-        float[] coeffs = new float[] {
-                2, 4, 5, 4, 2,
-                4, 9, 12, 9, 4,
-                5, 12, 15, 12, 5,
-                4, 9, 12, 9, 4,
-                2, 4, 5, 4, 2
-        };
-        for (int i = 0; i < 25; ++i) {
-            coeffs[i] /= 115;
-        }
-        mConv5.setCoefficients(coeffs);
+        //        mConv3.setInput(mAllocationBuf1);
+        //        mConv3.setCoefficients(new float[] {
+        //                0, 1, 0,
+        //                1, -4, 1,
+        //                0, 1, 0
+        //        });
+        //        mConv5.setInput(mAllocationBuf1);
+        //        float[] coeffs = new float[] {
+        //                2, 4, 5, 4, 2,
+        //                4, 9, 12, 9, 4,
+        //                5, 12, 15, 12, 5,
+        //                4, 9, 12, 9, 4,
+        //                2, 4, 5, 4, 2
+        //        };
+        //        for (int i = 0; i < 25; ++i) {
+        //            coeffs[i] /= 115;
+        //        }
+        //        mConv5.setCoefficients(coeffs);
 
         //        ScriptGroup.Builder b = new ScriptGroup.Builder(mRS);
         //        b.addKernel(mYuv.getKernelID());
@@ -142,19 +140,19 @@ public class Filter implements TextureView.SurfaceTextureListener {
             //            mGroup.setOutput(mBlur.getKernelID(), mAllocationOut);
             //            mGroup.execute();
             mAllocationIn.copyFrom(yuv);
-            mYuv.forEach(mAllocationOut1);
+            mYuv.forEach(mAllocationTmp);
+            mEffects.forEach_blur(mAllocationOut);
+            mEffects.forEach_sobel(mAllocationTmp);
+            mGray.forEach(mAllocationTmp, mAllocationOut);
             //            mConv5.forEach(mAllocationOut2);
-            //            mGray.forEach(mAllocationOut1, mAllocationOut1);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
             //            mEffects.forEach_edges(mAllocationOut2);
-            mEffects.forEach_blur(mAllocationOut2);
-            //            mEffects.forEach_sobel(mAllocationOut2);
             //            mConv3.forEach(mAllocationOut);
             //            mConv5.forEach(mAllocationOut);
 
             // hidden API
             //mAllocationOut.ioSendOutput();
-            ioSendOutput(mAllocationOut2);
+            ioSendOutput(mAllocationOut);
         }
     }
 
