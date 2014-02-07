@@ -31,7 +31,8 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private int mWidth;
     private RenderScript mRS;
     private Allocation mAllocationIn;
-    private Allocation mAllocationTmp;
+    private Allocation mAllocationTmp1;
+    private Allocation mAllocationTmp2;
     private Allocation mAllocationOut;
     private ScriptIntrinsicYuvToRGB mYuv;
     private ScriptIntrinsicColorMatrix mGray;
@@ -84,10 +85,15 @@ public class Filter implements TextureView.SurfaceTextureListener {
         tb.setYuvFormat(ImageFormat.NV21);
         mAllocationIn = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
 
+        tb = new Type.Builder(mRS, Element.F32(mRS));
+        tb.setX(mWidth);
+        tb.setY(mHeight);
+        mAllocationTmp1 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+        mAllocationTmp2 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+
         tb = new Type.Builder(mRS, Element.RGBA_8888(mRS));
         tb.setX(mWidth);
         tb.setY(mHeight);
-        mAllocationTmp = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
         mAllocationOut = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT |
                 Allocation.USAGE_IO_OUTPUT);
 
@@ -95,7 +101,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
 
         mYuv.setInput(mAllocationIn);
         mGray.setGreyscale();
-        mEffects.invoke_set_buffers(mAllocationTmp, mAllocationOut);
+        mEffects.invoke_set_buffers(mAllocationOut, mAllocationTmp1, mAllocationTmp2);
         //        mVintage.invoke_setSize(mWidth, mHeight);
         //        mBlur2.setInput(mAllocationTmp);
         //        mConv3.setInput(mAllocationBuf1);
@@ -140,10 +146,12 @@ public class Filter implements TextureView.SurfaceTextureListener {
             //            mGroup.setOutput(mBlur.getKernelID(), mAllocationOut);
             //            mGroup.execute();
             mAllocationIn.copyFrom(yuv);
-            mYuv.forEach(mAllocationTmp);
-            mEffects.forEach_blur(mAllocationOut);
-            mEffects.forEach_sobel(mAllocationTmp);
-            mGray.forEach(mAllocationTmp, mAllocationOut);
+            mYuv.forEach(mAllocationOut);
+            mGray.forEach(mAllocationOut, mAllocationOut);
+            mEffects.forEach_unpack(mAllocationOut, mAllocationTmp1);
+            mEffects.forEach_blur(mAllocationTmp2);
+            mEffects.forEach_sobel(mAllocationTmp1);
+            mEffects.forEach_pack(mAllocationTmp1, mAllocationOut);
             //            mConv5.forEach(mAllocationOut2);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
             //            mEffects.forEach_edges(mAllocationOut2);
