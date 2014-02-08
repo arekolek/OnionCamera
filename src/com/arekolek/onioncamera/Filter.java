@@ -31,8 +31,10 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private int mWidth;
     private RenderScript mRS;
     private Allocation mAllocationIn;
-    private Allocation mAllocationTmp1;
+    private Allocation mAllocationMagnitude;
     private Allocation mAllocationTmp2;
+    private Allocation mAllocationDirection;
+    private Allocation mAllocationEdge;
     private Allocation mAllocationOut;
     private ScriptIntrinsicYuvToRGB mYuv;
     private ScriptIntrinsicColorMatrix mGray;
@@ -88,8 +90,14 @@ public class Filter implements TextureView.SurfaceTextureListener {
         tb = new Type.Builder(mRS, Element.F32(mRS));
         tb.setX(mWidth);
         tb.setY(mHeight);
-        mAllocationTmp1 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+        mAllocationMagnitude = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
         mAllocationTmp2 = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+
+        tb = new Type.Builder(mRS, Element.I32(mRS));
+        tb.setX(mWidth);
+        tb.setY(mHeight);
+        mAllocationDirection = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
+        mAllocationEdge = Allocation.createTyped(mRS, tb.create(), Allocation.USAGE_SCRIPT);
 
         tb = new Type.Builder(mRS, Element.RGBA_8888(mRS));
         tb.setX(mWidth);
@@ -101,7 +109,9 @@ public class Filter implements TextureView.SurfaceTextureListener {
 
         mYuv.setInput(mAllocationIn);
         mGray.setGreyscale();
-        mEffects.invoke_set_buffers(mAllocationOut, mAllocationTmp1, mAllocationTmp2);
+        mEffects.invoke_set_buffers(mAllocationOut, mAllocationMagnitude, mAllocationTmp2,
+                mAllocationDirection, mAllocationEdge);
+        mEffects.invoke_set_thresholds(0.01f, 0.3f);
         //        mVintage.invoke_setSize(mWidth, mHeight);
         //        mBlur2.setInput(mAllocationTmp);
         //        mConv3.setInput(mAllocationBuf1);
@@ -148,10 +158,12 @@ public class Filter implements TextureView.SurfaceTextureListener {
             mAllocationIn.copyFrom(yuv);
             mYuv.forEach(mAllocationOut);
             mGray.forEach(mAllocationOut, mAllocationOut);
-            mEffects.forEach_unpack(mAllocationOut, mAllocationTmp1);
+            mEffects.forEach_unpack(mAllocationOut, mAllocationMagnitude);
             mEffects.forEach_blur(mAllocationTmp2);
-            mEffects.forEach_sobel(mAllocationTmp1);
-            mEffects.forEach_pack(mAllocationTmp1, mAllocationOut);
+            mEffects.forEach_compute_gradient(mAllocationMagnitude);
+            mEffects.forEach_suppress(mAllocationEdge);
+            mEffects.forEach_hysteresis(mAllocationOut);
+            //mEffects.forEach_pack(mAllocationTmp1, mAllocationOut);
             //            mConv5.forEach(mAllocationOut2);
             //            mVintage.forEach_root(mAllocationTmp, mAllocationOut);
             //            mEffects.forEach_edges(mAllocationOut2);
