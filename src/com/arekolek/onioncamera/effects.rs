@@ -23,9 +23,6 @@ void set_thresholds(float l, float h) {
 	high = h;
 }
 
-// TODO run only on a subset of the input (launch options)
-// TODO no race conditions in histogram?
-
 inline static uchar4 getElementAt_uchar4_clamped(rs_allocation a, uint32_t x,
 		uint32_t y) {
 	return rsGetElementAt_uchar4(a, clamp(x, zero, maxX), clamp(y, zero, maxY));
@@ -148,18 +145,69 @@ int __attribute__((kernel)) suppress(uint32_t x, uint32_t y) {
 	}
 }
 
+static const int NON_EDGE = 0b000;
+static const int LOW_EDGE = 0b001;
+static const int MED_EDGE = 0b010;
+static const int HIG_EDGE = 0b100;
+
+inline static int getEdgeType(uint32_t x, uint32_t y) {
+	int e = rsGetElementAt_int(candidates, x, y);
+	float g = rsGetElementAt_float(magnitude, x, y);
+	if (e == 1) {
+		if (g < low)
+			return LOW_EDGE;
+		if (g > high)
+			return HIG_EDGE;
+		return MED_EDGE;
+	}
+	return NON_EDGE;
+}
+
 uchar4 __attribute__((kernel)) hysteresis(uint32_t x, uint32_t y) {
 	uchar4 white = { 255, 255, 255, 255 };
 	uchar4 red = { 255, 0, 0, 255 };
 	uchar4 black = { 0, 0, 0, 255 };
-	int isEdge = rsGetElementAt_int(candidates, x, y);
-	float g = rsGetElementAt_float(magnitude, x, y);
-	if (isEdge == 1) {
-		if (g < low) {
+	int type = getEdgeType(x, y);
+	if (type) {
+		if (type & LOW_EDGE)
 			return black;
-		}
-		if (g > high) {
+		if (type & HIG_EDGE)
 			return white;
+
+		// it's medium, check nearest neighbours
+		type = getEdgeType(x - 1, y - 1);
+		type |= getEdgeType(x, y - 1);
+		type |= getEdgeType(x + 1, y - 1);
+		type |= getEdgeType(x - 1, y);
+		type |= getEdgeType(x + 1, y);
+		type |= getEdgeType(x - 1, y + 1);
+		type |= getEdgeType(x, y + 1);
+		type |= getEdgeType(x + 1, y + 1);
+
+		if (type & HIG_EDGE)
+			return white;
+
+		if (type & MED_EDGE) {
+			// check further
+			type = getEdgeType(x - 2, y - 2);
+			type |= getEdgeType(x - 1, y - 2);
+			type |= getEdgeType(x, y - 2);
+			type |= getEdgeType(x + 1, y - 2);
+			type |= getEdgeType(x + 2, y - 2);
+			type |= getEdgeType(x - 2, y - 1);
+			type |= getEdgeType(x + 2, y - 1);
+			type |= getEdgeType(x - 2, y);
+			type |= getEdgeType(x + 2, y);
+			type |= getEdgeType(x - 2, y + 1);
+			type |= getEdgeType(x + 2, y + 1);
+			type |= getEdgeType(x - 2, y + 2);
+			type |= getEdgeType(x - 1, y + 2);
+			type |= getEdgeType(x, y + 2);
+			type |= getEdgeType(x + 1, y + 2);
+			type |= getEdgeType(x + 2, y + 2);
+
+			if (type & HIG_EDGE)
+				return white;
 		}
 	}
 	return black;

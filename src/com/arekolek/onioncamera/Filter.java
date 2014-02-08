@@ -111,7 +111,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
         mGray.setGreyscale();
         mEffects.invoke_set_buffers(mAllocationOut, mAllocationMagnitude, mAllocationTmp2,
                 mAllocationDirection, mAllocationEdge);
-        mEffects.invoke_set_thresholds(0.01f, 0.3f);
+        mEffects.invoke_set_thresholds(0.2f, 0.6f);
         //        mVintage.invoke_setSize(mWidth, mHeight);
         //        mBlur2.setInput(mAllocationTmp);
         //        mConv3.setInput(mAllocationBuf1);
