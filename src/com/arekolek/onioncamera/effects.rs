@@ -2,20 +2,25 @@
 #pragma rs java_package_name(com.arekolek.onioncamera)
 #pragma rs_fp_relaxed
 
-static rs_allocation image, magnitude, buffer2, direction, candidates;
+static rs_allocation raw, magnitude, blurred, direction, candidates;
 static float low, high;
-static uint32_t maxX, maxY;
 static const uint32_t zero = 0;
 
-void set_buffers(rs_allocation out, rs_allocation tmp1, rs_allocation tmp2,
-		rs_allocation dir, rs_allocation e) {
-	image = out;
-	magnitude = tmp1;
-	buffer2 = tmp2;
-	direction = dir;
-	candidates = e;
-	maxX = rsAllocationGetDimX(out) - 1;
-	maxY = rsAllocationGetDimY(out) - 1;
+void set_blur_input(rs_allocation u8_buf) {
+	raw = u8_buf;
+}
+
+void set_compute_gradient_input(rs_allocation f_buf) {
+	blurred = f_buf;
+}
+
+void set_suppress_input(rs_allocation f_buf, rs_allocation i_buf) {
+	magnitude = f_buf;
+	direction = i_buf;
+}
+
+void set_hysteresis_input(rs_allocation i_buf) {
+	candidates = i_buf;
 }
 
 void set_thresholds(float l, float h) {
@@ -23,74 +28,67 @@ void set_thresholds(float l, float h) {
 	high = h;
 }
 
-inline static uchar4 getElementAt_uchar4_clamped(rs_allocation a, uint32_t x,
+inline static float getElementAt_uchar_to_float(rs_allocation a, uint32_t x,
 		uint32_t y) {
-	return rsGetElementAt_uchar4(a, clamp(x, zero, maxX), clamp(y, zero, maxY));
+	return rsGetElementAt_uchar(a, x, y) / 255.0f;
 }
 
-inline static float getElementAt_float_clamped(rs_allocation a, uint32_t x,
-		uint32_t y) {
-	return rsGetElementAt_float(a, clamp(x, zero, maxX), clamp(y, zero, maxY));
+static rs_allocation histogram;
+
+void set_histogram(rs_allocation h) {
+	histogram = h;
 }
 
-inline static float4 getElementAt_unpack(rs_allocation a, uint32_t x,
-		uint32_t y) {
-	return rsUnpackColor8888(getElementAt_uchar4_clamped(a, x, y));
-}
-
-float __attribute__((kernel)) unpack(uchar4 in) {
-	return rsUnpackColor8888(in).r;
-}
-
-uchar4 __attribute__((kernel)) pack(float in) {
-	return rsPackColorTo8888((float3) in);
+uchar4 __attribute__((kernel)) addhisto(uchar in, uint32_t x, uint32_t y) {
+	int px = (x - 100) / 2;
+	if (px > -1 && px < 256) {
+		int v = log((float)rsGetElementAt_int(histogram, (uint32_t)px))*30;
+		int py = (400 - y);
+		if (py > -1 && v > py) {
+			in = 255;
+		}
+		if(py == -1){
+			in = 255;
+		}
+	}
+	uchar4 out = { in, in, in, 255 };
+	return out;
 }
 
 float __attribute__((kernel)) blur(uint32_t x, uint32_t y) {
 	float pixel = 0;
 
-	pixel += getElementAt_float_clamped(magnitude, x - 2, y - 2) * 2;
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y - 2) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x, y - 2) * 5;
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y - 2) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x + 2, y - 2) * 2;
+	pixel += 2 * getElementAt_uchar_to_float(raw, x - 2, y - 2);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x - 1, y - 2);
+	pixel += 5 * getElementAt_uchar_to_float(raw, x, y - 2);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x + 1, y - 2);
+	pixel += 2 * getElementAt_uchar_to_float(raw, x + 2, y - 2);
 
-	pixel += getElementAt_float_clamped(magnitude, x - 2, y - 1) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y - 1) * 9;
-	pixel += getElementAt_float_clamped(magnitude, x, y - 1) * 12;
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y - 1) * 9;
-	pixel += getElementAt_float_clamped(magnitude, x + 2, y - 1) * 4;
+	pixel += 4 * getElementAt_uchar_to_float(raw, x - 2, y - 1);
+	pixel += 9 * getElementAt_uchar_to_float(raw, x - 1, y - 1);
+	pixel += 12 * getElementAt_uchar_to_float(raw, x, y - 1);
+	pixel += 9 * getElementAt_uchar_to_float(raw, x + 1, y - 1);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x + 2, y - 1);
 
-	pixel += getElementAt_float_clamped(magnitude, x - 2, y) * 5;
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y) * 12;
-	pixel += getElementAt_float_clamped(magnitude, x, y) * 15;
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y) * 12;
-	pixel += getElementAt_float_clamped(magnitude, x + 2, y) * 5;
+	pixel += 5 * getElementAt_uchar_to_float(raw, x - 2, y);
+	pixel += 12 * getElementAt_uchar_to_float(raw, x - 1, y);
+	pixel += 15 * getElementAt_uchar_to_float(raw, x, y);
+	pixel += 12 * getElementAt_uchar_to_float(raw, x + 1, y);
+	pixel += 5 * getElementAt_uchar_to_float(raw, x + 2, y);
 
-	pixel += getElementAt_float_clamped(magnitude, x - 2, y + 1) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y + 1) * 9;
-	pixel += getElementAt_float_clamped(magnitude, x, y + 1) * 12;
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y + 1) * 9;
-	pixel += getElementAt_float_clamped(magnitude, x + 2, y + 1) * 4;
+	pixel += 4 * getElementAt_uchar_to_float(raw, x - 2, y + 1);
+	pixel += 9 * getElementAt_uchar_to_float(raw, x - 1, y + 1);
+	pixel += 12 * getElementAt_uchar_to_float(raw, x, y + 1);
+	pixel += 9 * getElementAt_uchar_to_float(raw, x + 1, y + 1);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x + 2, y + 1);
 
-	pixel += getElementAt_float_clamped(magnitude, x - 2, y + 2) * 2;
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y + 2) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x, y + 2) * 5;
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y + 2) * 4;
-	pixel += getElementAt_float_clamped(magnitude, x + 2, y + 2) * 2;
+	pixel += 2 * getElementAt_uchar_to_float(raw, x - 2, y + 2);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x - 1, y + 2);
+	pixel += 5 * getElementAt_uchar_to_float(raw, x, y + 2);
+	pixel += 4 * getElementAt_uchar_to_float(raw, x + 1, y + 2);
+	pixel += 2 * getElementAt_uchar_to_float(raw, x + 2, y + 2);
 
 	pixel /= 159;
-
-	return pixel;
-}
-
-float __attribute__((kernel)) edges(uint32_t x, uint32_t y) {
-	float pixel = getElementAt_float_clamped(magnitude, x, y) * -4;
-
-	pixel += getElementAt_float_clamped(magnitude, x, y - 1);
-	pixel += getElementAt_float_clamped(magnitude, x - 1, y);
-	pixel += getElementAt_float_clamped(magnitude, x, y + 1);
-	pixel += getElementAt_float_clamped(magnitude, x + 1, y);
 
 	return pixel;
 }
@@ -98,21 +96,21 @@ float __attribute__((kernel)) edges(uint32_t x, uint32_t y) {
 float __attribute__((kernel)) compute_gradient(uint32_t x, uint32_t y) {
 	float gx = 0;
 
-	gx -= getElementAt_float_clamped(buffer2, x - 1, y - 1);
-	gx -= getElementAt_float_clamped(buffer2, x - 1, y) * 2;
-	gx -= getElementAt_float_clamped(buffer2, x - 1, y + 1);
-	gx += getElementAt_float_clamped(buffer2, x + 1, y - 1);
-	gx += getElementAt_float_clamped(buffer2, x + 1, y) * 2;
-	gx += getElementAt_float_clamped(buffer2, x + 1, y + 1);
+	gx -= rsGetElementAt_float(blurred, x - 1, y - 1);
+	gx -= rsGetElementAt_float(blurred, x - 1, y) * 2;
+	gx -= rsGetElementAt_float(blurred, x - 1, y + 1);
+	gx += rsGetElementAt_float(blurred, x + 1, y - 1);
+	gx += rsGetElementAt_float(blurred, x + 1, y) * 2;
+	gx += rsGetElementAt_float(blurred, x + 1, y + 1);
 
 	float gy = 0;
 
-	gy += getElementAt_float_clamped(buffer2, x - 1, y - 1);
-	gy += getElementAt_float_clamped(buffer2, x, y - 1) * 2;
-	gy += getElementAt_float_clamped(buffer2, x + 1, y - 1);
-	gy -= getElementAt_float_clamped(buffer2, x - 1, y + 1);
-	gy -= getElementAt_float_clamped(buffer2, x, y + 1) * 2;
-	gy -= getElementAt_float_clamped(buffer2, x + 1, y + 1);
+	gy += rsGetElementAt_float(blurred, x - 1, y - 1);
+	gy += rsGetElementAt_float(blurred, x, y - 1) * 2;
+	gy += rsGetElementAt_float(blurred, x + 1, y - 1);
+	gy -= rsGetElementAt_float(blurred, x - 1, y + 1);
+	gy -= rsGetElementAt_float(blurred, x, y + 1) * 2;
+	gy -= rsGetElementAt_float(blurred, x + 1, y + 1);
 
 	int d = ((int) round(atan2pi(gy, gx) * 4.0f) + 4) % 4;
 	rsSetElementAt_int(direction, d, x, y);
