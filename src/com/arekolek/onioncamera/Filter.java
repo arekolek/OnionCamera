@@ -28,6 +28,7 @@ public class Filter implements TextureView.SurfaceTextureListener {
     private ScriptIntrinsicHistogram mHistogram;
     private Allocation mAllocationHistogram;
     private int[] histo;
+    private int blending = 0;
 
     public Filter(RenderScript rs) {
         mRS = rs;
@@ -105,13 +106,21 @@ public class Filter implements TextureView.SurfaceTextureListener {
     public void execute(byte[] yuv) {
         if (mHaveSurface) {
             mAllocationIn.copy1DRangeFrom(0, mSize, yuv);
-            mHistogram.forEach_Dot(mAllocationIn);
-            mAllocationHistogram.copyTo(histo);
-            setThresholds();
-            mEffects.forEach_blur(mAllocationBlurred, sc);
-            mEffects.forEach_compute_gradient(mAllocationMagnitude, sc);
-            mEffects.forEach_suppress(mAllocationEdge, sc);
-            mEffects.forEach_hysteresis(mAllocationOut, sc);
+
+            if (blending == 0) {
+                mEffects.forEach_copy(mAllocationIn, mAllocationOut);
+            } else {
+                mHistogram.forEach_Dot(mAllocationIn);
+                mAllocationHistogram.copyTo(histo);
+                setThresholds();
+                mEffects.forEach_blur(mAllocationBlurred, sc);
+                mEffects.forEach_compute_gradient(mAllocationMagnitude, sc);
+                mEffects.forEach_suppress(mAllocationEdge, sc);
+                mEffects.forEach_hysteresis(mAllocationOut, sc);
+                if (blending == 2) {
+                    mEffects.forEach_blend(mAllocationOut, mAllocationOut);
+                }
+            }
             //            mEffects.forEach_addhisto(mAllocationIn, mAllocationOut);
 
             // hidden API
@@ -172,5 +181,9 @@ public class Filter implements TextureView.SurfaceTextureListener {
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
+    }
+
+    public void toggleBlending() {
+        blending = (blending + 1) % 3;
     }
 }

@@ -34,7 +34,6 @@ public class MainActivity extends Activity
 
     private static final int STATE_OFF = 0;
     private static final int STATE_PREVIEW = 1;
-    private static final int STATE_NO_CALLBACKS = 2;
     private int state = STATE_OFF;
     private boolean isProcessing = false;
 
@@ -55,9 +54,7 @@ public class MainActivity extends Activity
         preview.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                int visibility = overlay.getVisibility() == View.VISIBLE ? View.INVISIBLE
-                        : View.VISIBLE;
-                overlay.setVisibility(visibility);
+                filter.toggleBlending();
             }
         });
     }
