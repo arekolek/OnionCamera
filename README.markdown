@@ -1,7 +1,7 @@
 What's this
 -----------
 
-[Canny edge detection](https://en.wikipedia.org/wiki/Canny_edge_detector) in real time camera preview on Android using [RenderScript](developer.android.com/guide/topics/renderscript/compute.html).
+[Canny edge detection](https://en.wikipedia.org/wiki/Canny_edge_detector) in real time camera preview on Android using [RenderScript](http://developer.android.com/guide/topics/renderscript/compute.html).
 
 References
 ----------
