@@ -3,7 +3,7 @@ What's this
 
 [Canny edge detection](https://en.wikipedia.org/wiki/Canny_edge_detector) in real time camera preview on Android using [RenderScript](http://developer.android.com/guide/topics/renderscript/compute.html).
 
-[Sample video](https://www.dropbox.com/s/b78qy9xj65apu1g/canny.mp4) (excuse me for not removing audio).
+[Sample video](https://www.dropbox.com/s/b78qy9xj65apu1g/canny.mp4).
 
 References
 ----------
